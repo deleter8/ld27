@@ -1,15 +1,23 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using OpenTK;
 using SFML;
 using SFML.Graphics;
 using SFML.Window;
 using OpenTK.Graphics.OpenGL;
+using System.Linq;
 
 namespace Deleter.Tenseconds
 {
     class Program
     {
+        [DllImport("Kernel32.dll")]
+        private static extern bool QueryPerformanceCounter(out long lpPerformanceCount);
+
+        [DllImport("Kernel32.dll")]
+        private static extern bool QueryPerformanceFrequency(out long lpFrequency);
+
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -45,6 +53,8 @@ namespace Deleter.Tenseconds
             GL.ClearDepth(1);
             GL.ClearColor(0,0,0,1);
             
+            var font = new Font("Assets/arial.ttf");
+            
             var texture = new Texture("Assets/test.png");
             var sprite = new Sprite(texture);
 
@@ -52,17 +62,47 @@ namespace Deleter.Tenseconds
 
             var mousePos = Mouse.GetPosition(window);
 
+            const int fpsFramesToTrack = 1000;
+            var fpsFrames = new float[fpsFramesToTrack];
+            for (int i = 0; i < fpsFrames.Length; i++)
+            {
+                fpsFrames[i] = 0;
+            }
+
+            var fpsFrame = 0;
+
+            long lastTickCount = 0;
+            var tickCount = lastTickCount;
+            long tickCountFrequency;
+            QueryPerformanceFrequency(out tickCountFrequency);
+
+            var watch = new Stopwatch();
+            watch.Start();
+            
             // Start the game loop
             while (window.IsOpen())
             {
                 // Process events
                 window.DispatchEvents();
 
+                long newCount;
+                QueryPerformanceCounter(out newCount);
+                tickCount = (int) (newCount - lastTickCount);
+                lastTickCount = newCount;
+
                 // Clear color and depth buffer
                 GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
                 // Apply some transformations
                 float time = (Environment.TickCount - startTime) / 1000.0F;
+
+                fpsFrames[(fpsFrame++) % fpsFramesToTrack] = (float)tickCount / tickCountFrequency;// / 1000.0F;
+                var fps = (int)(1/fpsFrames.Average());
+
+                var text = new Text("Fps: " + fps, font, 24);
+                var text2 = new Text("Average Fps: " + (int)((fpsFrame) / (watch.Elapsed.TotalMilliseconds / 1000)), font, 24);
+                text.Position = new Vector2f(10,10);
+                text2.Position = new Vector2f(10, 58);
 
                 if (hasFocus)
                 {
@@ -73,10 +113,13 @@ namespace Deleter.Tenseconds
                     }
                 }
 
-                sprite.Position = new Vector2f((1600 * time) % 1600, mousePos.Y );
+                sprite.Scale = new Vector2f(((float)Math.Sin(time*10) / 2 + 1) * 3, ((float)Math.Cos(time*3) / 2 + 1)*3);
+                sprite.Position = new Vector2f(mousePos.X - (sprite.Texture.Size.X / 2) * sprite.Scale.X, mousePos.Y - (sprite.Texture.Size.Y / 2) * sprite.Scale.Y);
 
                 window.Draw(sprite);
-                
+                window.Draw(text);
+                window.Draw(text2);
+
                 // Finally, display the rendered frame on screen
                 window.Display();
             }
