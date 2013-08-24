@@ -19,7 +19,7 @@ namespace Deleter.Tenseconds
             var contextSettings = new ContextSettings {DepthBits = 32};
 
             // Create the main window
-            var window = new RenderWindow(new VideoMode(1600, 900), "Test SFML window with OpenGL via OpenTK", Styles.Close | Styles.Titlebar, contextSettings);
+            var window = new RenderWindow(new VideoMode(1600, 900), "TenSeconds", Styles.Close | Styles.Titlebar, contextSettings);
 
             // Make it the active window for OpenGL calls
             window.SetActive();
@@ -28,6 +28,13 @@ namespace Deleter.Tenseconds
             window.Closed     += OnClosed;
             window.KeyPressed += OnKeyPressed;
             window.Resized    += OnResized;
+            
+            bool hasFocus = true;
+            int mouseWheel = 0;
+
+            window.GainedFocus += (sender, args) => hasFocus = true;
+            window.LostFocus += (sender, args) => hasFocus = false;
+            window.MouseWheelMoved += (sender, args) => mouseWheel += args.Delta;
 
             var windowInfo = OpenTK.Platform.Utilities.CreateWindowsWindowInfo(window.SystemHandle);
             var graphicsContext = new OpenTK.Graphics.GraphicsContext(OpenTK.Graphics.GraphicsMode.Default, windowInfo);
@@ -37,12 +44,13 @@ namespace Deleter.Tenseconds
             // Set the color and depth clear values
             GL.ClearDepth(1);
             GL.ClearColor(0,0,0,1);
-
             
             var texture = new Texture("Assets/test.png");
             var sprite = new Sprite(texture);
 
             int startTime = Environment.TickCount;
+
+            var mousePos = Mouse.GetPosition(window);
 
             // Start the game loop
             while (window.IsOpen())
@@ -55,8 +63,15 @@ namespace Deleter.Tenseconds
 
                 // Apply some transformations
                 float time = (Environment.TickCount - startTime) / 1000.0F;
-                
-                var mousePos = Mouse.GetPosition(window);
+
+                if (hasFocus)
+                {
+                    var newMousePos = Mouse.GetPosition(window);
+                    if (newMousePos.X >= 0 && newMousePos.X < window.Size.X && newMousePos.Y >= 0 && newMousePos.Y < window.Size.Y)
+                    {
+                        mousePos = newMousePos;
+                    }
+                }
 
                 sprite.Position = new Vector2f((1600 * time) % 1600, mousePos.Y );
 
@@ -70,26 +85,28 @@ namespace Deleter.Tenseconds
         /// <summary>
         /// Function called when the window is closed
         /// </summary>
-        static void OnClosed(object sender, EventArgs e)
+        private static void OnClosed(object sender, EventArgs e)
         {
-            Window window = (Window)sender;
+            var window = (Window)sender;
             window.Close();
         }
 
         /// <summary>
         /// Function called when a key is pressed
         /// </summary>
-        static void OnKeyPressed(object sender, KeyEventArgs e)
+        private static void OnKeyPressed(object sender, KeyEventArgs e)
         {
-            Window window = (Window)sender;
+            var window = (Window)sender;
             if (e.Code == Keyboard.Key.Escape)
+            {
                 window.Close();
+            }
         }
 
         /// <summary>
         /// Function called when the window is resized
         /// </summary>
-        static void OnResized(object sender, SizeEventArgs e)
+        private static void OnResized(object sender, SizeEventArgs e)
         {
             GL.Viewport(0, 0, (int)e.Width, (int)e.Height);
         }
