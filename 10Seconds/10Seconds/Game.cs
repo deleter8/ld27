@@ -59,7 +59,7 @@ namespace Deleter.Tenseconds
         private void SetupAnimations()
         {
             var sprites = ResourceManager.Instance.GetSpriteSet(new string[] {"test.png"});
-            ResourceManager.Instance.GetAnimationMap("test").Add(AnimationAction.Idle, AnimationDirection.Up, sprites)
+            ResourceManager.Instance.GetAnimationMap("test").Add(AnimationAction.Idle, AnimationDirection.Up, sprites);
         }
     }
 }
